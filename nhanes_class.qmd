@@ -158,5 +158,25 @@ A \<- Consumes Ahi
 Determine the posterior probability that someone has diabetes given they are over the age of 40. Age is in the demographics dataframe, you will have to join it with the tiid data.
 
 ```{r}
+#Join TIID + demographics on SEQN
+df_age <- df %>%
+  left_join(demographics %>% select(SEQN, RIDAGEYR), by = "SEQN") %>%
+  mutate(over40 = ifelse(RIDAGEYR > 40, 1, 0))
+
+#Prior Probability of diabetes
+prior_probability_has_diabetes <- mean(df_age$DIQ010 == "Has Diabetes", na.rm = TRUE)
+
+#Evidence: Probability of being over 40
+prior_probability_over40 <- mean(df_age$over40 == 1, na.rm = TRUE)
+
+#Likelihood: P(Over 40 | Diabetes)
+likelihood_over40_given_diabetes <- mean(df_age$over40[df_age$DIQ010 == "Has Diabetes"] == 1, na.rm = TRUE)
+
+#Posterior: P(Diabetes | Over 40)
+posterior_probability_diabetes_given_over40 <- 
+  (likelihood_over40_given_diabetes * prior_probability_has_diabetes) /
+  prior_probability_over40
+
+posterior_probability_diabetes_given_over40
 
 ```
