@@ -14,6 +14,10 @@ library(janitor)
 library(rstanarm)
 library(here)
 library(readxl)
+library(plotly)
+library(tigris)
+library(sf)
+library(viridis)
 ```
 
 ### Data
@@ -54,18 +58,20 @@ chr_data <- chr_data %>%
 Simplify dataframe to select columns of interest
 
 ```{r}
-chr_data_simplify <- chr_data %>% 
+chr_data_simplified <- chr_data %>% 
   select(state, county, food_environment_index, percent_fair_or_poor_health)
 ```
 
 ### Simple scatter plot, linear model
 
 ```{r}
-
+ggplot(chr_data_simplified, aes(x = food_environment_index, y = percent_fair_or_poor_health)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth()
 ```
 
 ```{r}
-
+lm(percent_fair_or_poor_health ~ food_environment_index, chr_data_simplified)
 ```
 
 ### Priors
@@ -85,11 +91,16 @@ Several studies using BRFSS, County Health Rankings (CHR), or linked datasets fi
 ### Simulation with rstanarm
 
 ```{r}
-
+health_model <- stan_glm(percent_fair_or_poor_health ~ food_environment_index, data = chr_data_simplified,
+                       family = gaussian,
+                       prior_intercept = normal(17, 4),
+                       prior = normal(-1.3, 0.6), 
+                       prior_aux = exponential(1/4.5),
+                       chains = 4, iter = 5000*2, seed = 84735)
 ```
 
 ```{r}
-
+health_model
 ```
 
 → Each **+1** in **Food Environment Index** is associated with **\~2.6 percentage-point lower** fair/poor health, on average.
@@ -99,3 +110,77 @@ Several studies using BRFSS, County Health Rankings (CHR), or linked datasets fi
 ### Challenge
 
 Make a map describing the **Food Environment Index** in the US
+
+```{r}
+us_counties <- counties(cb = TRUE, year = 2022) %>%
+  st_as_sf() %>%
+  mutate(
+    state = str_to_title(STATE_NAME),
+    county = str_remove_all(NAME, " County")
+  )
+```
+
+```{r}
+fe_data <- chr_data_simplified %>%
+  mutate(
+    state = str_to_title(state),
+    county = str_remove_all(county, " County")
+  )
+```
+
+```{r}
+map_data <- us_counties %>%
+  left_join(fe_data, by = c("state", "county"))
+
+```
+
+```{r}
+ggplot(map_data) +
+  geom_sf(aes(fill = food_environment_index), color = NA) +
+  scale_fill_viridis(
+    name = "Food Environment Index",
+    option = "C",
+    limits = c(0, 10),
+    na.value = "gray90"
+  ) +
+  labs(
+    title = "Food Environment Index by County (United States)",
+    subtitle = "Higher values indicate better access to healthy food and lower food insecurity",
+    caption = "Source: County Health Rankings (CHR)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 16, face = "bold"),
+    axis.text = element_blank(),
+    axis.ticks = element_blank()
+  )
+
+```
+
+```{r}
+# Base ggplot map
+p <- ggplot(map_data) +
+  geom_sf(aes(fill = food_environment_index,
+              text = paste0(county, ", ", state, "<br>",
+                            "FEI: ", round(food_environment_index, 1))),
+          color = NA) +
+  scale_fill_viridis_c(
+    name = "Food Environment Index",
+    option = "C",
+    limits = c(0, 10),
+    na.value = "gray90"
+  ) +
+  labs(
+    title = "Food Environment Index by County (Contiguous U.S.)",
+    subtitle = "Higher values indicate better access to healthy food",
+    caption = "Source: County Health Rankings"
+  ) +
+  theme_void() +
+  theme(legend.position = "bottom")
+
+# Convert to interactive plotly
+fig <- ggplotly(p, tooltip = "text")
+
+fig
+
+```
