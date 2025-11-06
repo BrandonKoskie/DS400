@@ -38,15 +38,30 @@ weather_WU <- weather_WU %>%
 ```
 
 ```{r}
-
+ggplot(weather_WU, aes(x = temp9am, y = temp3pm, color = location)) +
+  geom_point(alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme_minimal() +
+  labs(title = "Morning vs Afternoon Temperature",
+       x = "Temperature at 9AM (°C)",
+       y = "Temperature at 3PM (°C)")
 ```
 
 ```{r}
-
+ggplot(weather_WU, aes(x = humidity9am, y = temp3pm, color = location)) +
+  geom_point() +
+  geom_smooth()
+  
 ```
 
 ```{r}
-
+ggplot(weather_WU, aes(x = location, y = temp3pm, fill = location)) +
+  geom_boxplot(alpha = 0.8) +
+  theme_minimal() +
+  labs(title = "Afternoon Temperature by Location",
+       x = "Location",
+       y = "Temperature at 3PM (°C)") +
+  theme(legend.position = "none")
 ```
 
 Consider the independent priors utilized by this model:
@@ -200,6 +215,12 @@ prediction_summary_cv(model = weather_model_4, data = weather_WU, k = 10)
 
 1.  If your goal were to explore the relationship between `temp3pm` and `location` without controlling for any other factors, which model would you use?
 
+    Model 3
+
 2.  If your goal were to maximize the predictive quality of your model and you could only choose *one* predictor to use in your model, would you choose `temp9am` or `location`
 
-3.  Which of the four models produces the best overall predictions?\
+    temp9am
+
+3.  Which of the four models produces the best overall predictions?
+
+    Model 3

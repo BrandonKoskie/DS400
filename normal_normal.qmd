@@ -6,6 +6,7 @@ editor: visual
 
 ```{r}
 library(tidyverse)
+library(ggplot2)
 library(bayesrules)
 ```
 
@@ -39,6 +40,14 @@ plot_normal(mean = 6.5, sd = 0.4)
 -   Add 4 `geom_vline()` to the plot above to indicate 1 standard deviation capturing 68% of the data and 2 standard deviations capturing 95% of the data
 
 ```{r}
+plot_normal(mean = 10, sd = 1) +
+  # ±1 standard deviation (68% region)
+  geom_vline(xintercept = 9, linetype = "dashed", color = "blue") +
+  geom_vline(xintercept = 11, linetype = "dashed", color = "blue") +
+  # ±2 standard deviations (95% region)
+  geom_vline(xintercept = 8, linetype = "dotted", color = "coral") +
+  geom_vline(xintercept = 12, linetype = "dotted", color = "coral") +
+  theme_minimal()
 
 ```
 
@@ -54,7 +63,22 @@ data(football)
 -   Visualize the football data in an interesting way utilizing `ggplot(()`
 
 ```{r}
+ggplot(football, aes(x = group, y = volume, fill = group)) +
+  geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+  geom_jitter(width = 0.15, alpha = 0.7, size = 2) +
+  labs(
+    title = "Hippocampal Volume by Group",
+    x = "Group",
+    y = "Hippocampal Volume (cm³)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
 
+```{r}
+ggplot(football, aes(x = years, y = volume, color = group)) +
+  geom_point() +
+  geom_smooth()
 ```
 
 Back to our example
@@ -78,6 +102,11 @@ ggplot(concussion_subjects, aes(x = volume)) +
 ```{r}
 ggplot(concussion_subjects, aes(x = volume)) + 
   geom_histogram(bins = 5)
+```
+
+```{r}
+concussion_subjects %>%
+  summarize(sd(volume))
 ```
 
 We plot this likelihood function using `plot_normal_likelihood()`, providing our observed `volume` data and data standard deviation σ=0.59 This likelihood illustrates the compatibility of our observed hippocampal data with different μ values. To this end, the hippocampal patterns observed in our data would most likely have arisen if the mean hippocampal volume across *all* people with a history of concussions, μ, were between 5.3 and 6.1 cm3. Further, we’re *most* likely to have observed a mean volume of ¯¯¯y= 5.735 among our 25 sample subjects if the underlying population mean μ were also 5.735.
@@ -116,6 +145,58 @@ AI Prompting
 
     -   Are there alternate/better bayesian methods/models to apply to the question your asking? Think of what we have covered (beta-binomial, gamma-poisson, normal-normal)
 
+    For your fish per cast problem, the Beta–Binomial is the most natural Bayesian model:
+
+    It uses the actual number of casts (trials)
+
+    It interprets each cast as a “success/failure” event
+
+    It directly estimates the posterior for 𝑝 p, the probability of catching a fish on a cast.
+
+    The Gamma–Poisson is fine for demonstrating conjugacy, but it glosses over unequal exposure. The Normal–Normal is less interpretable here, since fish catches are discrete, bounded, and rates often skewed.
+
     -   What assumptions are associated with the model you chose? With those assumptions in mind, is the model still a good fit for your question/data?
 
+    Yes the model is a reasonably good fit for your data:
+
+    It naturally incorporates unequal number of casts per trip, which the Gamma–Poisson ignored.
+
+    It gives a posterior distribution for the true catch probability, which answers your main question.
+
+    ⚠️ Caveats / limitations:
+
+    Assumes independence between casts; in reality, there could be correlations (e.g., fish school behavior).
+
+    Assumes constant 𝑝 p within a trip; environmental factors could cause slight variation.
+
+    Bottom line: The Beta–Binomial is a much better fit than the Gamma–Poisson or Normal–Normal for this specific question, but it’s not perfect. If you had more data or wanted to model variability across trips more explicitly, you could consider a hierarchical Beta–Binomial model.
+
     -   Are there real datasets you can use to answer your question opposed to AI generated datasets?
+
+1.  NOAA Recreational Fisheries Survey Data
+
+What it contains: Catch per unit effort (CPUE), number of fish caught, number of casts, location, species, and angler effort.
+
+Why useful: Provides real counts and effort measures that can be directly modeled with a Beta–Binomial or Gamma–Poisson framework.
+
+Link: NOAA Fisheries Data
+
+2.  State-Level Fish & Wildlife Angler Surveys
+
+Many states (e.g., Florida, California, Alaska) publish annual or ongoing angler survey datasets.
+
+Example: Florida Fish and Wildlife Conservation Commission (FWC) Recreational Angler Survey.
+
+Variables: Angler trips, casts or effort, number and species of fish caught, sometimes time of day or location.
+
+Use case: Perfect for modeling catch probability per cast or per trip.
+
+3.  Open Fisheries Science Datasets
+
+Kaggle & GitHub: Several projects contain trawl surveys, CPUE data, and catch/effort observations.
+
+Example:
+
+NOAA Northeast Fisheries Survey
+
+GitHub repos like fisheries-data or CPUE-analysis often include CSV files with real counts and effort.

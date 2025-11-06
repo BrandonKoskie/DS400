@@ -1,0 +1,9 @@
+---
+title: "prior post example"
+format: html
+editor: visual
+---
+
+```{r}
+plot_gamma_poisson(shape = 500, rate = 250, sum_y = 65, n = 162)
+```
